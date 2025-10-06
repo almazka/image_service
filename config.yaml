@@ -1,0 +1,15 @@
+server:
+  port: ":8080"
+  max_file_size: 10485760  # 10MB
+
+storage:
+  upload_dir: "./uploads"
+  allowed_types:
+    - "image/jpeg"
+    - "image/png"
+    - "image/gif"
+    - "image/webp"
+    - "image/bmp"
+
+logging:
+  level: "info"
