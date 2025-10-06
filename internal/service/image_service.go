@@ -1,14 +1,15 @@
 package service
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"syscall"
+	"time"
 )
 
 // UploadService сервис для работы с загрузкой файлов
@@ -28,9 +29,11 @@ type UploadResult struct {
 
 // FileInfo информация о файле
 type FileInfo struct {
-	Name string `json:"name"`
-	Size int64  `json:"size"`
-	URL  string `json:"url"`
+	Name      string    `json:"name"`
+	Size      int64     `json:"size"`
+	URL       string    `json:"url"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // NewUploadService создает новый экземпляр UploadService
@@ -50,9 +53,8 @@ func (s *UploadService) UploadFile(file multipart.File, header *multipart.FileHe
 		return nil, err
 	}
 
-	// Генерируем уникальное имя файла
-	fileExt := filepath.Ext(header.Filename)
-	fileName := s.generateFileName() + fileExt
+	// Используем оригинальное имя файла
+	fileName := s.sanitizeFileName(header.Filename)
 	filePath := filepath.Join(s.UploadDir, fileName)
 
 	// Сохраняем файл на диск
@@ -93,19 +95,51 @@ func (s *UploadService) ListFiles() ([]FileInfo, error) {
 		if file.IsDir() {
 			continue // Пропускаем директории
 		}
+
 		fileInfo, err := file.Info()
 		if err != nil {
 			continue // Пропускаем файлы с ошибками
 		}
 
+		// Получаем временные метки
+		createdAt, updatedAt := s.getFileTimes(fileInfo)
+
 		fileInfos = append(fileInfos, FileInfo{
-			Name: file.Name(),
-			Size: fileInfo.Size(),
-			URL:  fmt.Sprintf("/files/%s", file.Name()),
+			Name:      file.Name(),
+			Size:      fileInfo.Size(),
+			URL:       fmt.Sprintf("/files/%s", file.Name()),
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAt,
 		})
 	}
 
 	return fileInfos, nil
+}
+
+// getFileTimes возвращает временные метки файла
+func (s *UploadService) getFileTimes(fileInfo os.FileInfo) (time.Time, time.Time) {
+	// По умолчанию используем время модификации для обеих дат
+	modTime := fileInfo.ModTime()
+	createdAt := modTime
+	updatedAt := modTime
+
+	// Пытаемся получить более точные временные метки через syscall
+	if sys := fileInfo.Sys(); sys != nil {
+		switch stat := sys.(type) {
+		case *syscall.Stat_t:
+			// В Go поля называются так:
+			// Atim - время последнего доступа (Access time)
+			// Mtim - время последней модификации (Modification time)
+			// Ctim - время изменения статуса (Change time)
+
+			// Используем Ctime как приближение к дате создания
+			createdAt = time.Unix(stat.Ctimespec.Sec, stat.Ctimespec.Nsec)
+			// Используем Mtime как время обновления
+			updatedAt = time.Unix(stat.Ctimespec.Sec, stat.Ctimespec.Nsec)
+		}
+	}
+
+	return createdAt, updatedAt
 }
 
 // validateFileType проверяет тип файла
@@ -148,9 +182,18 @@ func (s *UploadService) saveFile(file multipart.File, filePath string) error {
 	return nil
 }
 
-// generateFileName генерирует уникальное имя файла
-func (s *UploadService) generateFileName() string {
-	bytes := make([]byte, 16)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
+// sanitizeFileName очищает имя файла от небезопасных символов
+func (s *UploadService) sanitizeFileName(filename string) string {
+	// Берем только имя файла (без пути)
+	filename = filepath.Base(filename)
+
+	// Заменяем небезопасные символы
+	replacer := strings.NewReplacer(
+		"..", "",
+		"/", "_",
+		"\\", "_",
+	)
+	filename = replacer.Replace(filename)
+
+	return filename
 }

@@ -1,5 +1,10 @@
+git clone ...
+go mod download
+
 Перед запуском заполнить config.yaml
 
+go run main.go
 
 Использование API
+
 curl -X POST -F "file=@image.jpg" http://localhost:8080/upload

@@ -2,11 +2,13 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	"image_service/internal/service"
 	"log"
 	"net/http"
 	"strings"
+
+	"image_service/internal/service"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // Handlers содержит обработчики HTTP запросов

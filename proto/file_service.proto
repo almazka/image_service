@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package image_service;
+
+option go_package = "image_service/proto";
+
+service FileService {
+  rpc UploadFile(UploadFileRequest) returns (UploadFileResponse);
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  rpc DownloadFile(DownloadFileRequest) returns (stream DownloadFileResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message UploadFileRequest {
+  string filename = 1;
+  bytes content = 2;
+  string content_type = 3;
+}
+
+message UploadFileResponse {
+  string filename = 1;
+  int64 size = 2;
+  string url = 3;
+  string message = 4;
+}
+
+message ListFilesRequest {}
+
+message FileInfo {
+  string name = 1;
+  int64 size = 2;
+  string url = 3;
+  string created_at = 4;
+  string updated_at = 5;
+}
+
+message ListFilesResponse {
+  repeated FileInfo files = 1;
+  int32 total = 2;
+}
+
+message DownloadFileRequest {
+  string filename = 1;
+}
+
+message DownloadFileResponse {
+  bytes chunk = 1;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  string service = 2;
+  string version = 3;
+}

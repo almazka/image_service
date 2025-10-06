@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// NewRouter создает новый роутер с настройками
+// NewRouter создает роутер
 func NewRouter(uploadService *service.UploadService) http.Handler {
 	handlers := NewHandlers(uploadService)
 
