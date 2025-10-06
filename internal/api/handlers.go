@@ -86,6 +86,23 @@ func (h *Handlers) FileHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filePath)
 }
 
+// ListFilesHandler возвращает список всех файлов
+func (h *Handlers) ListFilesHandler(w http.ResponseWriter, r *http.Request) {
+	clientIP := h.getClientIP(r)
+	log.Printf("File list requested from %s", clientIP)
+
+	// Получаем список файлов через сервис
+	files, err := h.uploadService.ListFiles()
+	if err != nil {
+		log.Printf("Error listing files for %s: %v", clientIP, err)
+		h.sendErrorResponse(w, "Error listing files", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("File list returned to %s: %d files", clientIP, len(files))
+	h.sendSuccessResponse(w, files)
+}
+
 // HealthHandler для проверки здоровья сервиса
 func (h *Handlers) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Health check from %s", h.getClientIP(r))

@@ -20,7 +20,8 @@ func NewRouter(uploadService *service.UploadService) http.Handler {
 
 	// File routes
 	r.Route("/files", func(r chi.Router) {
-		r.Get("/{filename}", handlers.FileHandler)
+		r.Get("/", handlers.ListFilesHandler)      // Список всех файлов
+		r.Get("/{filename}", handlers.FileHandler) // Получить файл
 	})
 
 	return r

@@ -26,6 +26,13 @@ type UploadResult struct {
 	URL      string `json:"url"`
 }
 
+// FileInfo информация о файле
+type FileInfo struct {
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+	URL  string `json:"url"`
+}
+
 // NewUploadService создает новый экземпляр UploadService
 func NewUploadService(uploadDir string, allowedTypes []string, maxFileSize int64) *UploadService {
 	return &UploadService{
@@ -71,6 +78,34 @@ func (s *UploadService) GetFile(filename string) (string, error) {
 	}
 
 	return filePath, nil
+}
+
+// ListFiles возвращает список всех файлов
+func (s *UploadService) ListFiles() ([]FileInfo, error) {
+	files, err := os.ReadDir(s.UploadDir)
+	if err != nil {
+		return nil, fmt.Errorf("error reading upload directory: %w", err)
+	}
+
+	var fileInfos []FileInfo
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue // Пропускаем директории
+		}
+		fileInfo, err := file.Info()
+		if err != nil {
+			continue // Пропускаем файлы с ошибками
+		}
+
+		fileInfos = append(fileInfos, FileInfo{
+			Name: file.Name(),
+			Size: fileInfo.Size(),
+			URL:  fmt.Sprintf("/files/%s", file.Name()),
+		})
+	}
+
+	return fileInfos, nil
 }
 
 // validateFileType проверяет тип файла
