@@ -1,0 +1,5 @@
+Перед запуском заполнить config.yaml
+
+
+Использование API
+curl -X POST -F "file=@image.jpg" http://localhost:8080/upload
